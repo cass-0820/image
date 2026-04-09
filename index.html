@@ -51,19 +51,18 @@
         input[type="number"] { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-left: 8px; }
         input[type="number"]:disabled { background-color: #f5f5f5; color: #999; }
         
-        /* 체크박스 스타일 */
-        .checkbox-container {
-            background-color: #fff3e0;
-            border: 1px solid #ffcc80;
-            padding: 12px 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            display: inline-block;
+        /* 새로 추가된 잠금(Lock) 체크박스 스타일 */
+        .lock-label {
+            cursor: pointer; display: inline-flex; align-items: center;
+            font-size: 14px; color: #e65100; font-weight: bold;
+            background: #fff3e0; padding: 8px 12px; border-radius: 6px;
+            border: 1px solid #ffe0b2; transition: all 0.2s; user-select: none;
         }
-        .checkbox-container label { cursor: pointer; font-weight: bold; color: #e65100; font-size: 15px; }
-        .checkbox-container input[type="checkbox"] { width: 16px; height: 16px; margin-right: 8px; vertical-align: middle; }
+        .lock-label:hover { background: #ffe0b2; }
+        .lock-label.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
+        .lock-label input { margin-right: 8px; cursor: pointer; }
 
-        .btn-group { display: flex; gap: 10px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         button {
             padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px;
             font-weight: bold; cursor: pointer; transition: transform 0.1s, background 0.3s;
@@ -117,7 +116,7 @@
             </label>
         </div>
 
-        <div>
+        <div style="display: flex; align-items: center; flex-wrap: wrap;">
             <div class="input-group">
                 <label for="width">가로:</label>
                 <input type="number" id="width" min="1"> px
@@ -126,11 +125,17 @@
                 <label for="height">세로:</label>
                 <input type="number" id="height" min="1"> px
             </div>
+            <div class="input-group" style="margin-bottom: 10px;">
+                <label class="lock-label" id="lock-wrapper">
+                    <input type="checkbox" id="lock-custom"> 🔒 입력한 숫자 및 비율 고정
+                </label>
+            </div>
         </div>
+        <p style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">* 직접 입력 모드에서 원하시는 해상도를 입력한 후 <b>'고정'</b>을 체크하면, 박스를 움직여도 숫자가 바뀌지 않습니다.</p>
 
         <div class="divider"></div>
 
-        <div class="section-title">3. 저장 설정 및 다운로드</div>
+        <div class="section-title">3. 저장 포맷 및 다운로드</div>
         
         <div class="radio-group">
             <span style="font-weight: 600; margin-right: 5px; font-size: 14px;">파일 형식:</span>
@@ -148,19 +153,9 @@
             </label>
         </div>
 
-        <div class="checkbox-container">
-            <label>
-                <input type="checkbox" id="lock-resolution" checked>
-                📌 지정한 해상도로 최종 이미지 크기 강제 고정 (업스케일링/리사이징)
-            </label>
-            <div style="font-size: 12px; color: #555; margin-top: 5px; margin-left: 24px; font-weight: normal;">
-                체크 해제 시: 해상도를 억지로 늘리거나 줄이지 않고, 자른 영역의 실제 픽셀 크기 그대로 저장됩니다.
-            </div>
-        </div>
-
         <div class="btn-group">
-            <button class="btn-primary" id="download-single">💾 단일 이미지 저장</button>
-            <button class="btn-secondary" id="download-split">🔲 4장으로 분할 저장</button>
+            <button class="btn-primary" id="download-single">💾 현재 영역 한 장으로 저장</button>
+            <button class="btn-secondary" id="download-split">🔲 해상도 유지하며 4장으로 분할 저장</button>
         </div>
     </div>
 
@@ -174,7 +169,10 @@
         const widthInput = document.getElementById('width');
         const heightInput = document.getElementById('height');
         const presetRadios = document.querySelectorAll('input[name="preset"]');
-        const lockResolutionCheckbox = document.getElementById('lock-resolution');
+        
+        // 새로 추가된 잠금 컨트롤 변수
+        const lockCustomCheckbox = document.getElementById('lock-custom');
+        const lockWrapper = document.getElementById('lock-wrapper');
 
         uploadInput.addEventListener('change', function (e) {
             const files = e.target.files;
@@ -194,7 +192,8 @@
                         autoCropArea: 0.8,
                         crop(event) {
                             const selectedPreset = document.querySelector('input[name="preset"]:checked').value;
-                            if (selectedPreset === 'custom') {
+                            // ⭐ '잠금'이 해제되어 있을 때만 크롭 박스 움직임이 숫자를 덮어쓰도록 수정
+                            if (selectedPreset === 'custom' && !lockCustomCheckbox.checked) {
                                 widthInput.value = Math.round(event.detail.width);
                                 heightInput.value = Math.round(event.detail.height);
                             }
@@ -204,27 +203,83 @@
                     document.querySelector('input[value="custom"]').checked = true;
                     widthInput.disabled = false;
                     heightInput.disabled = false;
+                    lockCustomCheckbox.checked = false; // 이미지 새로 올리면 잠금 풀기
+                    updateLockUI(false);
                 };
                 reader.readAsDataURL(file);
             }
         });
+
+        // 잠금(Lock) 체크박스 기능 처리
+        lockCustomCheckbox.addEventListener('change', function() {
+            if (!cropper) return;
+            const isCustom = document.querySelector('input[name="preset"]:checked').value === 'custom';
+            
+            if (isCustom) {
+                if (this.checked) {
+                    // 고정 ON: 입력된 숫자를 바탕으로 비율을 계산해서 묶어버림
+                    const w = parseFloat(widthInput.value) || 1;
+                    const h = parseFloat(heightInput.value) || 1;
+                    cropper.setAspectRatio(w / h);
+                } else {
+                    // 고정 OFF: 자유 비율로 풀고, 현재 박스 크기를 입력창에 다시 업데이트
+                    cropper.setAspectRatio(NaN);
+                    widthInput.value = Math.round(cropper.getData().width);
+                    heightInput.value = Math.round(cropper.getData().height);
+                }
+            }
+        });
+
+        // 잠긴 상태에서 사용자가 숫자를 수정하면 비율을 즉시 재계산
+        function updateRatioIfLocked() {
+            if (lockCustomCheckbox.checked && document.querySelector('input[name="preset"]:checked').value === 'custom') {
+                const w = parseFloat(widthInput.value) || 1;
+                const h = parseFloat(heightInput.value) || 1;
+                cropper.setAspectRatio(w / h);
+            }
+        }
+        widthInput.addEventListener('input', updateRatioIfLocked);
+        heightInput.addEventListener('input', updateRatioIfLocked);
+
+        // UI 활성/비활성 처리 함수
+        function updateLockUI(disabled) {
+            lockCustomCheckbox.disabled = disabled;
+            if (disabled) {
+                lockWrapper.classList.add('disabled');
+            } else {
+                lockWrapper.classList.remove('disabled');
+            }
+        }
 
         presetRadios.forEach(radio => {
             radio.addEventListener('change', function() {
                 if (!cropper) return;
 
                 if (this.value === 'custom') {
-                    cropper.setAspectRatio(NaN);
+                    // 직접 입력 모드로 돌아오면 잠금 기능 활성화
+                    updateLockUI(false);
                     widthInput.disabled = false;
                     heightInput.disabled = false;
-                    widthInput.value = Math.round(cropper.getData().width);
-                    heightInput.value = Math.round(cropper.getData().height);
+                    
+                    if (lockCustomCheckbox.checked) {
+                        const w = parseFloat(widthInput.value) || 1;
+                        const h = parseFloat(heightInput.value) || 1;
+                        cropper.setAspectRatio(w / h);
+                    } else {
+                        cropper.setAspectRatio(NaN);
+                        widthInput.value = Math.round(cropper.getData().width);
+                        heightInput.value = Math.round(cropper.getData().height);
+                    }
                 } else {
+                    // 즐겨찾기(프리셋) 선택 시
                     const dimensions = this.value.split('x');
                     widthInput.value = parseInt(dimensions[0]);
                     heightInput.value = parseInt(dimensions[1]);
                     widthInput.disabled = true;
                     heightInput.disabled = true;
+                    
+                    // 즐겨찾기는 자체적으로 고정되므로, 사용자 커스텀 잠금 UI는 끄기
+                    updateLockUI(true); 
                     cropper.setAspectRatio(parseFloat(this.dataset.ratio));
                 }
             });
@@ -249,79 +304,54 @@
             }, mimeType, quality);
         }
 
-        // 4. 단일 저장
         document.getElementById('download-single').addEventListener('click', function () {
             if (!cropper) return;
 
             const targetWidth = parseInt(widthInput.value);
             const targetHeight = parseInt(heightInput.value);
-            const isLocked = lockResolutionCheckbox.checked;
 
             if (!targetWidth || !targetHeight) {
                 alert("가로와 세로 해상도를 확인해주세요."); return;
             }
 
             const croppedCanvas = cropper.getCroppedCanvas();
-            
-            // 체크 여부에 따라 최종 캔버스 크기 결정
-            const finalW = isLocked ? targetWidth : croppedCanvas.width;
-            const finalH = isLocked ? targetHeight : croppedCanvas.height;
-
             const resizedCanvas = document.createElement('canvas');
-            resizedCanvas.width = finalW;
-            resizedCanvas.height = finalH;
+            resizedCanvas.width = targetWidth;
+            resizedCanvas.height = targetHeight;
             const ctx = resizedCanvas.getContext('2d');
             
             const format = document.querySelector('input[name="format"]:checked').value;
             if(format === 'jpeg') {
                 ctx.fillStyle = '#FFFFFF';
-                ctx.fillRect(0, 0, finalW, finalH);
+                ctx.fillRect(0, 0, targetWidth, targetHeight);
             }
             
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(croppedCanvas, 0, 0, finalW, finalH);
-            
+            ctx.drawImage(croppedCanvas, 0, 0, targetWidth, targetHeight);
             downloadCanvasAsImage(resizedCanvas, 'edited_image');
         });
 
-        // 5. 4등분 저장
         document.getElementById('download-split').addEventListener('click', function () {
             if (!cropper) return;
 
             const targetWidth = parseInt(widthInput.value);
             const targetHeight = parseInt(heightInput.value);
-            const isLocked = lockResolutionCheckbox.checked;
-            
             const originalCroppedCanvas = cropper.getCroppedCanvas();
             
-            // 자른 원본 이미지 크기
-            const croppedW = originalCroppedCanvas.width;
-            const croppedH = originalCroppedCanvas.height;
-
-            // 이미지를 그릴 베이스 도화지 설정 (체크 시 타겟 해상도, 해제 시 원본 크기)
-            const baseW = isLocked ? targetWidth : croppedW;
-            const baseH = isLocked ? targetHeight : croppedH;
-
             const baseCanvas = document.createElement('canvas');
-            baseCanvas.width = baseW;
-            baseCanvas.height = baseH;
+            baseCanvas.width = targetWidth;
+            baseCanvas.height = targetHeight;
             const baseCtx = baseCanvas.getContext('2d');
 
             const format = document.querySelector('input[name="format"]:checked').value;
             if(format === 'jpeg') {
                 baseCtx.fillStyle = '#FFFFFF';
-                baseCtx.fillRect(0, 0, baseW, baseH);
+                baseCtx.fillRect(0, 0, targetWidth, targetHeight);
             }
 
-            baseCtx.imageSmoothingEnabled = true;
-            baseCtx.imageSmoothingQuality = 'high';
-            // 잘라낸 이미지를 베이스 도화지 크기에 맞춰서 그림
-            baseCtx.drawImage(originalCroppedCanvas, 0, 0, baseW, baseH);
+            baseCtx.drawImage(originalCroppedCanvas, 0, 0, targetWidth, targetHeight);
 
-            // 자를 크기 (베이스 도화지의 절반)
-            const halfW = Math.floor(baseW / 2);
-            const halfH = Math.floor(baseH / 2);
+            const halfW = Math.floor(targetWidth / 2);
+            const halfH = Math.floor(targetHeight / 2);
             
             const pieces = [
                 { x: 0, y: 0, name: '1_top_left' },
@@ -332,22 +362,14 @@
 
             pieces.forEach((piece, index) => {
                 const pieceCanvas = document.createElement('canvas');
-                
-                // 최종 조각의 크기 설정
-                // 고정(isLocked) 체크되어 있으면: 조각을 다시 원본 해상도(target) 크기로 강제 확대
-                // 고정 해제되어 있으면: 그냥 절반으로 자른 크기(half) 그대로 유지
-                const finalPieceW = isLocked ? targetWidth : halfW;
-                const finalPieceH = isLocked ? targetHeight : halfH;
-
-                pieceCanvas.width = finalPieceW;
-                pieceCanvas.height = finalPieceH;
+                pieceCanvas.width = targetWidth;
+                pieceCanvas.height = targetHeight;
                 const ctx = pieceCanvas.getContext('2d');
                 
                 ctx.imageSmoothingEnabled = true;
                 ctx.imageSmoothingQuality = 'high';
 
-                // 베이스 도화지에서 half 크기만큼 잘라와서, finalPiece 크기로 꽉 차게 그림
-                ctx.drawImage(baseCanvas, piece.x, piece.y, halfW, halfH, 0, 0, finalPieceW, finalPieceH);
+                ctx.drawImage(baseCanvas, piece.x, piece.y, halfW, halfH, 0, 0, targetWidth, targetHeight);
 
                 setTimeout(() => {
                     downloadCanvasAsImage(pieceCanvas, `split_image_${piece.name}`);
