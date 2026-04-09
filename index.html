@@ -3,34 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내 PC 속 이미지 편집기</title>
+    <title>내 PC 속 이미지 편집기 Pro</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 30px 20px;
-            background-color: #f9f9f9;
+            background-color: #f0f2f5;
             color: #333;
         }
-        h1 { text-align: center; color: #2c3e50; }
+        h1 { text-align: center; color: #1a237e; }
         .panel {
             background: white;
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
         .img-container {
             max-width: 100%;
-            max-height: 600px;
+            max-height: 500px;
             margin-bottom: 20px;
-            background-color: #eee;
+            background-color: #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
         }
         img { max-width: 100%; }
+        
+        /* 프리셋 라디오 버튼 스타일 */
+        .preset-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .preset-label {
+            cursor: pointer;
+            padding: 8px 12px;
+            background-color: #e8eaf6;
+            border-radius: 6px;
+            border: 1px solid #c5cae9;
+            transition: all 0.2s;
+        }
+        .preset-label:hover { background-color: #c5cae9; }
+        input[type="radio"]:checked + .preset-label {
+            background-color: #3f51b5;
+            color: white;
+            border-color: #3f51b5;
+        }
+        input[type="radio"] { display: none; }
+
         .input-group {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
             margin-right: 15px;
             margin-bottom: 10px;
         }
@@ -39,58 +66,84 @@
             padding: 8px;
             border: 1px solid #ccc;
             border-radius: 4px;
+            margin-left: 8px;
         }
-        input[type="file"] {
-            padding: 10px 0;
-        }
+        input[type="number"]:disabled { background-color: #f5f5f5; color: #999; }
+        
+        /* 버튼 스타일 */
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
         button {
-            padding: 10px 20px;
-            background-color: #3498db;
-            color: white;
+            padding: 12px 24px;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: transform 0.1s, background 0.3s;
         }
-        button:hover { background-color: #2980b9; }
-        .flex-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
+        button:active { transform: scale(0.98); }
+        .btn-primary { background-color: #3f51b5; color: white; }
+        .btn-primary:hover { background-color: #303f9f; }
+        .btn-secondary { background-color: #ff9800; color: white; }
+        .btn-secondary:hover { background-color: #f57c00; }
+        
+        .section-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: #333; }
     </style>
 </head>
 <body>
 
-    <h1>이미지 크롭 & 리사이즈</h1>
+    <h1>이미지 크롭 & 분할 에디터</h1>
 
     <div class="panel">
-        <label for="upload" style="font-weight: bold; display: block; margin-bottom: 10px;">1. 이미지 불러오기</label>
+        <div class="section-title">1. 이미지 불러오기</div>
         <input type="file" id="upload" accept="image/*">
     </div>
 
-    <div class="img-container">
-        <img id="image" src="" style="display:none;">
+    <div class="img-container" id="img-container" style="display:none;">
+        <img id="image" src="">
     </div>
 
     <div class="panel" id="edit-controls" style="display:none;">
-        <div style="margin-bottom: 15px; font-weight: bold;">2. 크롭 후 저장할 해상도 설정</div>
-        <div class="flex-row">
-            <div>
-                <div class="input-group">
-                    <label for="width">가로 (px): </label>
-                    <input type="number" id="width" min="1">
-                </div>
-                <div class="input-group">
-                    <label for="height">세로 (px): </label>
-                    <input type="number" id="height" min="1">
-                </div>
-            </div>
-            <button id="download">저장하기</button>
+        <div class="section-title">2. 해상도 선택 및 저장</div>
+        
+        <div class="preset-group">
+            <label>
+                <input type="radio" name="preset" value="custom" checked>
+                <span class="preset-label">✍️ 직접 입력 (자유 비율)</span>
+            </label>
+            <label>
+                <input type="radio" name="preset" value="1080x1080" data-ratio="1">
+                <span class="preset-label">📷 인스타그램 (1080x1080)</span>
+            </label>
+            <label>
+                <input type="radio" name="preset" value="1920x1080" data-ratio="1.7777">
+                <span class="preset-label">📺 FHD 가로 (1920x1080)</span>
+            </label>
+            <label>
+                <input type="radio" name="preset" value="1080x1920" data-ratio="0.5625">
+                <span class="preset-label">📱 숏폼 세로 (1080x1920)</span>
+            </label>
         </div>
-        <p style="font-size: 13px; color: #7f8c8d; margin-top: 10px;">* 이미지를 자르는 영역을 변경하면, 위 해상도 숫자도 현재 자른 크기에 맞춰 자동으로 변경됩니다. 원하는 숫자로 직접 수정해서 저장할 수도 있습니다.</p>
+
+        <div>
+            <div class="input-group">
+                <label for="width">가로:</label>
+                <input type="number" id="width" min="1"> px
+            </div>
+            <div class="input-group">
+                <label for="height">세로:</label>
+                <input type="number" id="height" min="1"> px
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-primary" id="download-single">💾 현재 영역 저장</button>
+            <button class="btn-secondary" id="download-split">🔲 4등분 자동 저장</button>
+        </div>
+        <p style="font-size: 13px; color: #7f8c8d; margin-top: 15px; line-height: 1.5;">
+            * <b>4등분 자동 저장:</b> 현재 선택된 박스 안의 이미지를 자동으로 가로/세로 2등분(총 4장)하여 다운로드합니다.<br>
+            * 브라우저 설정에 따라 여러 파일 다운로드 시 '권한 허용' 알림이 뜰 수 있습니다.
+        </p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
@@ -99,9 +152,10 @@
         const uploadInput = document.getElementById('upload');
         const image = document.getElementById('image');
         const editControls = document.getElementById('edit-controls');
+        const imgContainer = document.getElementById('img-container');
         const widthInput = document.getElementById('width');
         const heightInput = document.getElementById('height');
-        const downloadBtn = document.getElementById('download');
+        const presetRadios = document.querySelectorAll('input[name="preset"]');
 
         // 1. 이미지 파일 업로드 처리
         uploadInput.addEventListener('change', function (e) {
@@ -112,62 +166,144 @@
 
                 reader.onload = function (e) {
                     image.src = e.target.result;
-                    image.style.display = 'block';
+                    imgContainer.style.display = 'block';
                     editControls.style.display = 'block';
 
-                    // 기존 크로퍼가 있다면 제거하고 새로 생성
                     if (cropper) { cropper.destroy(); }
 
                     cropper = new Cropper(image, {
-                        viewMode: 1, // 크롭 박스가 캔버스를 벗어나지 않도록 설정
+                        viewMode: 1,
                         autoCropArea: 0.8,
                         crop(event) {
-                            // 크롭 박스가 움직일 때마다 현재 크롭된 영역의 사이즈를 입력창에 표시
-                            widthInput.value = Math.round(event.detail.width);
-                            heightInput.value = Math.round(event.detail.height);
+                            // 커스텀 모드일 때만 크롭 박스 움직임에 따라 입력창 숫자 업데이트
+                            const selectedPreset = document.querySelector('input[name="preset"]:checked').value;
+                            if (selectedPreset === 'custom') {
+                                widthInput.value = Math.round(event.detail.width);
+                                heightInput.value = Math.round(event.detail.height);
+                            }
                         }
                     });
+                    
+                    // 이미지 새로 올리면 프리셋을 '직접 입력'으로 초기화
+                    document.querySelector('input[value="custom"]').checked = true;
+                    widthInput.disabled = false;
+                    heightInput.disabled = false;
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // 2. 크롭 및 해상도 변경 후 저장 처리
-        downloadBtn.addEventListener('click', function () {
-            if (!cropper) return;
+        // 2. 프리셋 선택 이벤트 처리
+        presetRadios.forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (!cropper) return;
 
-            // 사용자가 입력창에 설정한 최종 가로/세로 길이 가져오기
-            const targetWidth = parseInt(widthInput.value);
-            const targetHeight = parseInt(heightInput.value);
+                if (this.value === 'custom') {
+                    // 자유 비율 모드
+                    cropper.setAspectRatio(NaN);
+                    widthInput.disabled = false;
+                    heightInput.disabled = false;
+                    const cropData = cropper.getCropBoxData();
+                    // 임시 업데이트
+                    widthInput.value = Math.round(cropper.getData().width);
+                    heightInput.value = Math.round(cropper.getData().height);
+                } else {
+                    // 고정 해상도 모드
+                    const dimensions = this.value.split('x');
+                    const targetW = parseInt(dimensions[0]);
+                    const targetH = parseInt(dimensions[1]);
+                    const ratio = parseFloat(this.dataset.ratio);
+                    
+                    widthInput.value = targetW;
+                    heightInput.value = targetH;
+                    widthInput.disabled = true; // 프리셋 선택 시 수동 입력 금지
+                    heightInput.disabled = true;
 
-            if (!targetWidth || !targetHeight) {
-                alert("가로와 세로 해상도를 입력해주세요.");
-                return;
-            }
+                    // 크롭 박스 비율 고정
+                    cropper.setAspectRatio(ratio);
+                }
+            });
+        });
 
-            // 크롭된 원본 캔버스 가져오기
-            const croppedCanvas = cropper.getCroppedCanvas();
-
-            // 리사이징을 위한 새로운 캔버스 생성
-            const resizedCanvas = document.createElement('canvas');
-            resizedCanvas.width = targetWidth;
-            resizedCanvas.height = targetHeight;
-            const ctx = resizedCanvas.getContext('2d');
-
-            // 크롭된 이미지를 사용자가 지정한 크기의 새 캔버스에 그리기
-            ctx.drawImage(croppedCanvas, 0, 0, targetWidth, targetHeight);
-
-            // 캔버스 이미지를 다운로드 처리 (PNG 형태)
-            resizedCanvas.toBlob(function (blob) {
+        // 캔버스를 이미지 파일로 다운로드 하는 공통 함수
+        function downloadCanvasAsImage(canvas, filename) {
+            canvas.toBlob(function (blob) {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'edited_image.png'; // 기본 저장 파일명
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }, 'image/png');
+        }
+
+        // 3. 단일 저장 버튼 클릭
+        document.getElementById('download-single').addEventListener('click', function () {
+            if (!cropper) return;
+
+            const targetWidth = parseInt(widthInput.value);
+            const targetHeight = parseInt(heightInput.value);
+
+            if (!targetWidth || !targetHeight) {
+                alert("가로와 세로 해상도를 확인해주세요."); return;
+            }
+
+            const croppedCanvas = cropper.getCroppedCanvas();
+            const resizedCanvas = document.createElement('canvas');
+            resizedCanvas.width = targetWidth;
+            resizedCanvas.height = targetHeight;
+            const ctx = resizedCanvas.getContext('2d');
+            ctx.drawImage(croppedCanvas, 0, 0, targetWidth, targetHeight);
+
+            downloadCanvasAsImage(resizedCanvas, 'edited_image.png');
+        });
+
+        // 4. 4등분 자동 저장 버튼 클릭
+        document.getElementById('download-split').addEventListener('click', function () {
+            if (!cropper) return;
+
+            // 현재 크롭된 영역의 캔버스 가져오기 (해상도는 설정된 타겟 크기 기준)
+            const targetWidth = parseInt(widthInput.value);
+            const targetHeight = parseInt(heightInput.value);
+            
+            const originalCroppedCanvas = cropper.getCroppedCanvas();
+            
+            // 리사이징이 반영된 베이스 캔버스 생성
+            const baseCanvas = document.createElement('canvas');
+            baseCanvas.width = targetWidth;
+            baseCanvas.height = targetHeight;
+            const baseCtx = baseCanvas.getContext('2d');
+            baseCtx.drawImage(originalCroppedCanvas, 0, 0, targetWidth, targetHeight);
+
+            // 4등분 계산
+            const halfW = Math.floor(targetWidth / 2);
+            const halfH = Math.floor(targetHeight / 2);
+
+            // 4개의 조각 좌표
+            const pieces = [
+                { x: 0, y: 0, name: '1_top_left' },
+                { x: halfW, y: 0, name: '2_top_right' },
+                { x: 0, y: halfH, name: '3_bottom_left' },
+                { x: halfW, y: halfH, name: '4_bottom_right' }
+            ];
+
+            // 4조각 순차적으로 다운로드
+            pieces.forEach((piece, index) => {
+                const pieceCanvas = document.createElement('canvas');
+                pieceCanvas.width = halfW;
+                pieceCanvas.height = halfH;
+                const ctx = pieceCanvas.getContext('2d');
+                
+                // 원본 캔버스에서 해당 영역만 복사하여 그리기
+                ctx.drawImage(baseCanvas, piece.x, piece.y, halfW, halfH, 0, 0, halfW, halfH);
+
+                // 여러 파일을 한 번에 다운로드할 때 브라우저 차단을 막기 위해 0.3초 간격으로 다운로드 실행
+                setTimeout(() => {
+                    downloadCanvasAsImage(pieceCanvas, `split_image_${piece.name}.png`);
+                }, index * 300);
+            });
         });
     </script>
 </body>
