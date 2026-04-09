@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 PC 속 이미지 편집기</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        h1 { text-align: center; color: #2c3e50; }
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .img-container {
+            max-width: 100%;
+            max-height: 600px;
+            margin-bottom: 20px;
+            background-color: #eee;
+        }
+        img { max-width: 100%; }
+        .input-group {
+            display: inline-block;
+            margin-right: 15px;
+            margin-bottom: 10px;
+        }
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        input[type="file"] {
+            padding: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #2980b9; }
+        .flex-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>이미지 크롭 & 리사이즈</h1>
+
+    <div class="panel">
+        <label for="upload" style="font-weight: bold; display: block; margin-bottom: 10px;">1. 이미지 불러오기</label>
+        <input type="file" id="upload" accept="image/*">
+    </div>
+
+    <div class="img-container">
+        <img id="image" src="" style="display:none;">
+    </div>
+
+    <div class="panel" id="edit-controls" style="display:none;">
+        <div style="margin-bottom: 15px; font-weight: bold;">2. 크롭 후 저장할 해상도 설정</div>
+        <div class="flex-row">
+            <div>
+                <div class="input-group">
+                    <label for="width">가로 (px): </label>
+                    <input type="number" id="width" min="1">
+                </div>
+                <div class="input-group">
+                    <label for="height">세로 (px): </label>
+                    <input type="number" id="height" min="1">
+                </div>
+            </div>
+            <button id="download">저장하기</button>
+        </div>
+        <p style="font-size: 13px; color: #7f8c8d; margin-top: 10px;">* 이미지를 자르는 영역을 변경하면, 위 해상도 숫자도 현재 자른 크기에 맞춰 자동으로 변경됩니다. 원하는 숫자로 직접 수정해서 저장할 수도 있습니다.</p>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script>
+        let cropper;
+        const uploadInput = document.getElementById('upload');
+        const image = document.getElementById('image');
+        const editControls = document.getElementById('edit-controls');
+        const widthInput = document.getElementById('width');
+        const heightInput = document.getElementById('height');
+        const downloadBtn = document.getElementById('download');
+
+        // 1. 이미지 파일 업로드 처리
+        uploadInput.addEventListener('change', function (e) {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                const file = files[0];
+                const reader = new FileReader();
+
+                reader.onload = function (e) {
+                    image.src = e.target.result;
+                    image.style.display = 'block';
+                    editControls.style.display = 'block';
+
+                    // 기존 크로퍼가 있다면 제거하고 새로 생성
+                    if (cropper) { cropper.destroy(); }
+
+                    cropper = new Cropper(image, {
+                        viewMode: 1, // 크롭 박스가 캔버스를 벗어나지 않도록 설정
+                        autoCropArea: 0.8,
+                        crop(event) {
+                            // 크롭 박스가 움직일 때마다 현재 크롭된 영역의 사이즈를 입력창에 표시
+                            widthInput.value = Math.round(event.detail.width);
+                            heightInput.value = Math.round(event.detail.height);
+                        }
+                    });
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 2. 크롭 및 해상도 변경 후 저장 처리
+        downloadBtn.addEventListener('click', function () {
+            if (!cropper) return;
+
+            // 사용자가 입력창에 설정한 최종 가로/세로 길이 가져오기
+            const targetWidth = parseInt(widthInput.value);
+            const targetHeight = parseInt(heightInput.value);
+
+            if (!targetWidth || !targetHeight) {
+                alert("가로와 세로 해상도를 입력해주세요.");
+                return;
+            }
+
+            // 크롭된 원본 캔버스 가져오기
+            const croppedCanvas = cropper.getCroppedCanvas();
+
+            // 리사이징을 위한 새로운 캔버스 생성
+            const resizedCanvas = document.createElement('canvas');
+            resizedCanvas.width = targetWidth;
+            resizedCanvas.height = targetHeight;
+            const ctx = resizedCanvas.getContext('2d');
+
+            // 크롭된 이미지를 사용자가 지정한 크기의 새 캔버스에 그리기
+            ctx.drawImage(croppedCanvas, 0, 0, targetWidth, targetHeight);
+
+            // 캔버스 이미지를 다운로드 처리 (PNG 형태)
+            resizedCanvas.toBlob(function (blob) {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'edited_image.png'; // 기본 저장 파일명
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        });
+    </script>
+</body>
+</html>
