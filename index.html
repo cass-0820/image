@@ -3,66 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>내 PC 속 이미지 편집기 Pro Max</title>
+    <title>내 PC 속 이미지 편집기 Pro Max (Dark)</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <style>
+        /* 기본(라이트 모드) 테마 변수 설정 */
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --panel-bg: white;
+            --panel-shadow: rgba(0,0,0,0.05);
+            --img-bg: #e0e0e0;
+            --radio-bg: #e8eaf6;
+            --radio-border: #c5cae9;
+            --radio-hover: #c5cae9;
+            --input-bg: white;
+            --input-border: #ccc;
+            --input-disabled: #f5f5f5;
+            --input-disabled-text: #999;
+            --format-bg: #e0f2f1;
+            --format-border: #b2dfdb;
+            --format-hover: #b2dfdb;
+            --lock-bg: #fff3e0;
+            --lock-border: #ffe0b2;
+            --lock-text: #e65100;
+            --lock-hover: #ffe0b2;
+            --divider: #eee;
+            --title-color: #1a237e;
+            --desc-color: #7f8c8d;
+        }
+
+        /* 다크 모드 테마 변수 설정 */
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --panel-bg: #1e1e1e;
+            --panel-shadow: rgba(0,0,0,0.5);
+            --img-bg: #2c2c2c;
+            --radio-bg: #333;
+            --radio-border: #555;
+            --radio-hover: #444;
+            --input-bg: #333;
+            --input-border: #555;
+            --input-disabled: #222;
+            --input-disabled-text: #777;
+            --format-bg: #263238;
+            --format-border: #37474f;
+            --format-hover: #37474f;
+            --lock-bg: #3e2723;
+            --lock-border: #4e342e;
+            --lock-text: #ffb74d;
+            --lock-hover: #4e342e;
+            --divider: #444;
+            --title-color: #90caf9;
+            --desc-color: #aaa;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 900px;
             margin: 0 auto;
             padding: 30px 20px;
-            background-color: #f0f2f5;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 { margin: 0; color: var(--title-color); transition: color 0.3s; }
+        
+        /* 테마 변경 버튼 스타일 */
+        #theme-toggle {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            background-color: #333;
+            color: white;
+            transition: all 0.3s;
+        }
+        body.dark-mode #theme-toggle {
+            background-color: #f1c40f;
             color: #333;
         }
-        h1 { text-align: center; color: #1a237e; }
+
         .panel {
-            background: white;
+            background: var(--panel-bg);
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px var(--panel-shadow);
             margin-bottom: 20px;
+            transition: background 0.3s, box-shadow 0.3s;
         }
         .img-container {
             max-width: 100%;
             max-height: 500px;
             margin-bottom: 20px;
-            background-color: #e0e0e0;
+            background-color: var(--img-bg);
             border-radius: 8px;
             overflow: hidden;
+            transition: background 0.3s;
         }
         img { max-width: 100%; }
         
         .radio-group { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
         .radio-label {
-            cursor: pointer; padding: 8px 12px; background-color: #e8eaf6;
-            border-radius: 6px; border: 1px solid #c5cae9; transition: all 0.2s; font-size: 14px;
+            cursor: pointer; padding: 8px 12px; background-color: var(--radio-bg);
+            border-radius: 6px; border: 1px solid var(--radio-border); transition: all 0.2s; font-size: 14px;
+            color: var(--text-color);
         }
-        .radio-label:hover { background-color: #c5cae9; }
+        .radio-label:hover { background-color: var(--radio-hover); }
         input[type="radio"]:checked + .radio-label {
             background-color: #3f51b5; color: white; border-color: #3f51b5; font-weight: bold;
         }
         input[type="radio"] { display: none; }
 
-        .format-label { background-color: #e0f2f1; border-color: #b2dfdb; }
-        .format-label:hover { background-color: #b2dfdb; }
+        .format-label { background-color: var(--format-bg); border-color: var(--format-border); }
+        .format-label:hover { background-color: var(--format-hover); }
         input[type="radio"]:checked + .format-label { background-color: #00897b; border-color: #00897b; }
 
         .input-group { display: inline-flex; align-items: center; margin-right: 15px; margin-bottom: 10px; }
-        input[type="number"] { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-left: 8px; }
-        input[type="number"]:disabled { background-color: #f5f5f5; color: #999; }
+        input[type="number"] { 
+            width: 80px; padding: 8px; border: 1px solid var(--input-border); 
+            border-radius: 4px; margin-left: 8px; background-color: var(--input-bg); color: var(--text-color);
+        }
+        input[type="number"]:disabled { background-color: var(--input-disabled); color: var(--input-disabled-text); }
         
-        /* 새로 추가된 잠금(Lock) 체크박스 스타일 */
         .lock-label {
             cursor: pointer; display: inline-flex; align-items: center;
-            font-size: 14px; color: #e65100; font-weight: bold;
-            background: #fff3e0; padding: 8px 12px; border-radius: 6px;
-            border: 1px solid #ffe0b2; transition: all 0.2s; user-select: none;
+            font-size: 14px; color: var(--lock-text); font-weight: bold;
+            background: var(--lock-bg); padding: 8px 12px; border-radius: 6px;
+            border: 1px solid var(--lock-border); transition: all 0.2s; user-select: none;
         }
-        .lock-label:hover { background: #ffe0b2; }
+        .lock-label:hover { background: var(--lock-hover); }
         .lock-label.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(100%); }
         .lock-label input { margin-right: 8px; cursor: pointer; }
 
-        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
         button {
             padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px;
             font-weight: bold; cursor: pointer; transition: transform 0.1s, background 0.3s;
@@ -73,17 +156,21 @@
         .btn-secondary { background-color: #ff9800; color: white; }
         .btn-secondary:hover { background-color: #f57c00; }
         
-        .section-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: #333; }
-        .divider { height: 1px; background-color: #eee; margin: 20px 0; }
+        .section-title { font-weight: bold; font-size: 18px; margin-bottom: 15px; color: var(--text-color); transition: color 0.3s; }
+        .divider { height: 1px; background-color: var(--divider); margin: 20px 0; transition: background 0.3s; }
+        .help-text { font-size: 13px; color: var(--desc-color); margin-top: 15px; line-height: 1.5; transition: color 0.3s; }
     </style>
 </head>
-<body>
+<body class="dark-mode">
 
-    <h1>이미지 크롭 & 분할 에디터</h1>
+    <div class="header-container">
+        <h1>이미지 크롭 & 분할 에디터</h1>
+        <button id="theme-toggle">☀️ 라이트 모드 켜기</button>
+    </div>
 
     <div class="panel">
         <div class="section-title">1. 이미지 불러오기</div>
-        <input type="file" id="upload" accept="image/*">
+        <input type="file" id="upload" accept="image/*" style="color: var(--text-color);">
     </div>
 
     <div class="img-container" id="img-container" style="display:none;">
@@ -131,7 +218,7 @@
                 </label>
             </div>
         </div>
-        <p style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">* 직접 입력 모드에서 원하시는 해상도를 입력한 후 <b>'고정'</b>을 체크하면, 박스를 움직여도 숫자가 바뀌지 않습니다.</p>
+        <p class="help-text" style="margin-top: 5px;">* 직접 입력 모드에서 원하시는 해상도를 입력한 후 <b>'고정'</b>을 체크하면, 박스를 움직여도 숫자가 바뀌지 않습니다.</p>
 
         <div class="divider"></div>
 
@@ -157,10 +244,26 @@
             <button class="btn-primary" id="download-single">💾 현재 영역 한 장으로 저장</button>
             <button class="btn-secondary" id="download-split">🔲 해상도 유지하며 4장으로 분할 저장</button>
         </div>
+        <p class="help-text">
+            * <b>해상도 유지 4장 분할:</b> 1/4 조각으로 자른 이미지를 <b>선택한 원본 해상도 크기로 다시 확대(업스케일링)</b>하여 4장으로 저장합니다.<br>
+            예) 1400x2100 설정 시, 4장의 이미지 모두 각각 1400x2100 해상도로 저장됩니다.
+        </p>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
+        // --- 테마 토글 로직 ---
+        const themeToggleBtn = document.getElementById('theme-toggle');
+        themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            if (document.body.classList.contains('dark-mode')) {
+                themeToggleBtn.innerText = '☀️ 라이트 모드 켜기';
+            } else {
+                themeToggleBtn.innerText = '🌙 다크 모드 켜기';
+            }
+        });
+
+        // --- 크로퍼 에디터 로직 ---
         let cropper;
         const uploadInput = document.getElementById('upload');
         const image = document.getElementById('image');
@@ -169,8 +272,6 @@
         const widthInput = document.getElementById('width');
         const heightInput = document.getElementById('height');
         const presetRadios = document.querySelectorAll('input[name="preset"]');
-        
-        // 새로 추가된 잠금 컨트롤 변수
         const lockCustomCheckbox = document.getElementById('lock-custom');
         const lockWrapper = document.getElementById('lock-wrapper');
 
@@ -192,7 +293,6 @@
                         autoCropArea: 0.8,
                         crop(event) {
                             const selectedPreset = document.querySelector('input[name="preset"]:checked').value;
-                            // ⭐ '잠금'이 해제되어 있을 때만 크롭 박스 움직임이 숫자를 덮어쓰도록 수정
                             if (selectedPreset === 'custom' && !lockCustomCheckbox.checked) {
                                 widthInput.value = Math.round(event.detail.width);
                                 heightInput.value = Math.round(event.detail.height);
@@ -203,26 +303,23 @@
                     document.querySelector('input[value="custom"]').checked = true;
                     widthInput.disabled = false;
                     heightInput.disabled = false;
-                    lockCustomCheckbox.checked = false; // 이미지 새로 올리면 잠금 풀기
+                    lockCustomCheckbox.checked = false; 
                     updateLockUI(false);
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // 잠금(Lock) 체크박스 기능 처리
         lockCustomCheckbox.addEventListener('change', function() {
             if (!cropper) return;
             const isCustom = document.querySelector('input[name="preset"]:checked').value === 'custom';
             
             if (isCustom) {
                 if (this.checked) {
-                    // 고정 ON: 입력된 숫자를 바탕으로 비율을 계산해서 묶어버림
                     const w = parseFloat(widthInput.value) || 1;
                     const h = parseFloat(heightInput.value) || 1;
                     cropper.setAspectRatio(w / h);
                 } else {
-                    // 고정 OFF: 자유 비율로 풀고, 현재 박스 크기를 입력창에 다시 업데이트
                     cropper.setAspectRatio(NaN);
                     widthInput.value = Math.round(cropper.getData().width);
                     heightInput.value = Math.round(cropper.getData().height);
@@ -230,7 +327,6 @@
             }
         });
 
-        // 잠긴 상태에서 사용자가 숫자를 수정하면 비율을 즉시 재계산
         function updateRatioIfLocked() {
             if (lockCustomCheckbox.checked && document.querySelector('input[name="preset"]:checked').value === 'custom') {
                 const w = parseFloat(widthInput.value) || 1;
@@ -241,7 +337,6 @@
         widthInput.addEventListener('input', updateRatioIfLocked);
         heightInput.addEventListener('input', updateRatioIfLocked);
 
-        // UI 활성/비활성 처리 함수
         function updateLockUI(disabled) {
             lockCustomCheckbox.disabled = disabled;
             if (disabled) {
@@ -256,7 +351,6 @@
                 if (!cropper) return;
 
                 if (this.value === 'custom') {
-                    // 직접 입력 모드로 돌아오면 잠금 기능 활성화
                     updateLockUI(false);
                     widthInput.disabled = false;
                     heightInput.disabled = false;
@@ -271,14 +365,12 @@
                         heightInput.value = Math.round(cropper.getData().height);
                     }
                 } else {
-                    // 즐겨찾기(프리셋) 선택 시
                     const dimensions = this.value.split('x');
                     widthInput.value = parseInt(dimensions[0]);
                     heightInput.value = parseInt(dimensions[1]);
                     widthInput.disabled = true;
                     heightInput.disabled = true;
                     
-                    // 즐겨찾기는 자체적으로 고정되므로, 사용자 커스텀 잠금 UI는 끄기
                     updateLockUI(true); 
                     cropper.setAspectRatio(parseFloat(this.dataset.ratio));
                 }
